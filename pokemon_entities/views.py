@@ -28,8 +28,9 @@ def add_pokemon(folium_map, lat, lon, image_url=DEFAULT_IMAGE_URL):
 
 
 def show_all_pokemons(request):
+    time = timezone.localtime()
     pokemon_entities = PokemonEntity.objects.filter(
-        appeared_at__lte=timezone.localtime(), disappeared_at__gte=timezone.localtime()
+        appeared_at__lte=time, disappeared_at__gte=time
     )
     pokemons = Pokemon.objects.all()
     folium_map = folium.Map(location=MOSCOW_CENTER, zoom_start=12)
@@ -62,41 +63,34 @@ def show_all_pokemons(request):
 
 
 def show_pokemon(request, pokemon_id):
-    pokemon = get_object_or_404(Pokemon, pk=pokemon_id)
-    if pokemon.pk == int(pokemon_id):
-        pokemon_entities = PokemonEntity.objects.filter(pokemon=pokemon)
-    else:
-        return HttpResponseNotFound("<h1>Такой покемон не найден</h1>")
-    parent = pokemon.parent
-    decendant = pokemon.descendant
-    previous_evolution = {}
-    next_evolution = {}
-    if parent:
-        previous_evolution = {
-            "title_ru": parent.title,
-            "title_en": parent.title_en,
-            "title_jp": parent.title_jp,
-            "description": parent.description,
-            "pokemon_id": parent.pk,
-            "img_url": request.build_absolute_uri(parent.photo.url),
+    pokemons = get_object_or_404(Pokemon, pk=pokemon_id)
+    if pokemons.pk == int(pokemon_id):
+        pokemon_entities = PokemonEntity.objects.filter(pokemon=pokemons)
+    previous_evolutions_info = {}
+    next_evolutions_info = {}
+    previous_evolutions = pokemons.previous_evolution
+    next_evolutions = pokemons.next_evolutions.first()
+    if previous_evolutions:
+        previous_evolutions_info = {
+            "title_ru": previous_evolutions.title,
+            "pokemon_id": previous_evolutions.pk,
+            "img_url": request.build_absolute_uri(previous_evolutions.photo.url),
         }
-    if decendant:
-        next_evolution = {
-            "title_ru": decendant.title,
-            "title_en": decendant.title_en,
-            "title_jp": decendant.title_jp,
-            "description": decendant.description,
-            "pokemon_id": decendant.pk,
-            "img_url": request.build_absolute_uri(decendant.photo.url),
+
+    if next_evolutions:
+        next_evolutions_info = {
+            "title_ru": next_evolutions.title,
+            "pokemon_id": next_evolutions.pk,
+            "img_url": request.build_absolute_uri(next_evolutions.photo.url),
         }
     pokemon_identity = {
-        "title_ru": pokemon.title,
-        "title_en": pokemon.title_en,
-        "title_jp": pokemon.title_jp,
-        "description": pokemon.description,
-        "img_url": request.build_absolute_uri(pokemon.photo.url),
-        "next_evolution": next_evolution,
-        "previous_evolution": previous_evolution,
+        "title_ru": pokemons.title,
+        "title_en": pokemons.title_en,
+        "title_jp": pokemons.title_jp,
+        "description": pokemons.description,
+        "img_url": request.build_absolute_uri(pokemons.photo.url),
+        "next_evolution": next_evolutions_info,
+        "previous_evolution": previous_evolutions_info,
     }
 
     folium_map = folium.Map(location=MOSCOW_CENTER, zoom_start=12)
@@ -105,7 +99,7 @@ def show_pokemon(request, pokemon_id):
             folium_map,
             pokemon_entity.latitude,
             pokemon_entity.longitude,
-            request.build_absolute_uri(pokemon.photo.url),
+            request.build_absolute_uri(pokemons.photo.url),
         )
 
     return render(
