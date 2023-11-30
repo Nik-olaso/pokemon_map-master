@@ -33,7 +33,7 @@ class PokemonEntity(models.Model):
         blank=True,
         null=True,
         verbose_name="Покемон",
-        related_name="pokemons",
+        related_name="entities",
     )
     latitude = models.FloatField(verbose_name="Широта")
     longitude = models.FloatField(verbose_name="Долгота")
