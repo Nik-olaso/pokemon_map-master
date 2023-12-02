@@ -50,7 +50,6 @@ def show_all_pokemons(request):
                 "title_ru": pokemon.title,
             }
         )
-        print(pokemons_on_page)
 
     return render(
         request,
